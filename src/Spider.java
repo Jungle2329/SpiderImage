@@ -12,14 +12,14 @@ import java.util.regex.Pattern;
  * @desc TODO
  */
 
-class Spider {
+public class Spider {
 
     private String startUrl;
 
     /**
      * @param startUrl 爬虫开始的url
      */
-    private Spider(String startUrl) {
+    public Spider(String startUrl) {
         this.startUrl = startUrl;
     }
 
