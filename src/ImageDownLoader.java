@@ -13,7 +13,7 @@ import java.net.URL;
 
 class ImageDownLoader {
 
-    public static void saveInFile(String path) {
+    public static void saveInFile(String path, String baseUrl) {
         byte[] bs = new byte[1024 * 2];
         try {
             if (path.contains("http://") || path.contains("https://")) {
@@ -21,9 +21,11 @@ class ImageDownLoader {
             } else if (path.startsWith("//")) {
                 path = "https:" + path;
             } else if (path.startsWith("/")) {
-                path = "https:/" + path;
+                //截掉baseUrl最后的/
+                String str = baseUrl.substring(0, baseUrl.length() - 1);
+                path = str + path;
             } else {
-                path = "https://" + path;
+                path = baseUrl + path;
             }
             if (path.endsWith(".js")) {
                 return;

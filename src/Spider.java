@@ -15,12 +15,14 @@ import java.util.regex.Pattern;
 public class Spider {
 
     private String startUrl;
+    private String baseUrl;
 
     /**
      * @param startUrl 爬虫开始的url
      */
     public Spider(String startUrl) {
         this.startUrl = startUrl;
+        baseUrl = Utils.getBaseUrl(startUrl);
     }
 
     /**
@@ -57,10 +59,11 @@ public class Spider {
             String words = matcher.group();
             words = words.replace("src=", "");
             words = words.replace("\"", "");
-            ImageDownLoader.saveInFile(words);
+            ImageDownLoader.saveInFile(words, baseUrl);
             strs += words + "\r\n";
         }
         System.out.println("-----------------------------------------------");
         return strs;
     }
+
 }
