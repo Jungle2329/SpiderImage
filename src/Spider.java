@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -12,10 +13,12 @@ import java.util.regex.Pattern;
  * @desc TODO
  */
 
-public class Spider {
+public class Spider implements Runnable {
 
     private String startUrl;
     private String baseUrl;
+    private ArrayList<String> spiderPath = new ArrayList<>();
+    private ArrayList<String> spiderTargat = new ArrayList<>();
 
     /**
      * @param startUrl 爬虫开始的url
@@ -23,47 +26,125 @@ public class Spider {
     public Spider(String startUrl) {
         this.startUrl = startUrl;
         baseUrl = Utils.getBaseUrl(startUrl);
+        spiderPath.add(startUrl);
+    }
+
+    public Spider(String baseUrl, ArrayList<String> spiderPath, ArrayList<String> spiderTargat) {
+        this.spiderPath = spiderPath;
+        this.spiderTargat = spiderTargat;
+        this.baseUrl = baseUrl;
     }
 
     /**
      * 开始爬虫
      */
-    public void startSpider() {
-        BufferedReader in;
-        String result = "";
+    @Override
+    public void run() {
+        if (startUrl == null || "".equals(startUrl)) {
+            for (String targat : spiderTargat) {
+                startClimb(targat);
+            }
+        } else {
+            startClimb(startUrl);
+        }
+
+    }
+
+    /**
+     * 开爬，先获取到html的源代码
+     * @param analysisUrl
+     */
+    private void startClimb(String analysisUrl) {
+        System.out.println("开始爬:" + analysisUrl);
+        spiderPath.add(analysisUrl);
+        BufferedReader in = null;
+        StringBuilder result = new StringBuilder();
         try {
-            URL url = new URL(startUrl);
+            URL url = new URL(analysisUrl);
             URLConnection conn = url.openConnection();
             in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
             String line;
             //拿到所有的网页源代码
             while ((line = in.readLine()) != null) {
-                result += line + "\r\n";
+                result.append(line);
             }
-            System.out.println(matchStr(result));
+            getHtmlSrc(result.toString());
+            getHtmlHref(result.toString());
+
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (in != null) {
+                    in.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
+
     }
 
     /**
-     * 分析网页源代码，匹配想要的信息
+     * 分析网页源代码，找到页内所有图片
+     *
      * @param str
      * @return
      */
-    private String matchStr(String str) {
+    private void getHtmlSrc(String str) {
         Pattern pattern = Pattern.compile("src=\\\"(.+?)\\\"");
         Matcher matcher = pattern.matcher(str);
-        String strs = "";
+        StringBuilder strs = new StringBuilder();
         while (matcher.find()) {
             String words = matcher.group();
             words = words.replace("src=", "");
             words = words.replace("\"", "");
             ImageDownLoader.saveInFile(words, baseUrl);
-            strs += words + "\r\n";
+            strs.append(words).append("\r\n");
         }
-        System.out.println("-----------------------------------------------");
-        return strs;
+        System.out.println("-----------------下载完-------------------");
+        System.out.println(strs);
     }
 
+    /**
+     * 分析网页源代码，找到所有链接
+     *
+     * @param str
+     * @return
+     */
+    private void getHtmlHref(String str) {
+        Pattern pattern = Pattern.compile("href=\\\"(.+?)\\\"");
+        Matcher matcher = pattern.matcher(str);
+        StringBuilder strs = new StringBuilder();
+        String realUrl = "";
+        String tempUrl = "";
+        while (matcher.find()) {
+            tempUrl = matcher.group();
+            tempUrl = tempUrl.replace("href=", "");
+            tempUrl = tempUrl.replace("\"", "");
+            if (tempUrl.startsWith("http://") || tempUrl.startsWith("https://")) {
+                realUrl = tempUrl;
+            } else {
+                realUrl = baseUrl + tempUrl;
+            }
+
+            if (!realUrl.endsWith(".css") && !realUrl.endsWith("ico")) {
+                if (!spiderTargat.contains(realUrl) && !spiderPath.contains(realUrl)) {
+                    strs.append(realUrl).append("\r\n");
+                    spiderTargat.add(realUrl);
+                }
+            }
+
+        }
+
+        Spider mSpider = new Spider(baseUrl, spiderPath, spiderTargat);
+        new Thread(mSpider).start();
+
+        System.out.println("---------------------搜索完该页面下的所有次级链接-----------------------");
+        System.out.println(strs.toString());
+    }
+
+    private void a() {
+
+    }
 }
