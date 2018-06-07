@@ -18,11 +18,28 @@ class Utils {
      * @return 获取不到为空
      */
     public static String getBaseUrl(String url) {
-        Pattern mPattern = Pattern.compile("^[a-zA-z]+://[a-zA-Z0-9.]+/");
+        Pattern mPattern = Pattern.compile("^[a-zA-z]+://[a-zA-Z0-9.-]+/");
         Matcher matcher = mPattern.matcher(url);
         while(matcher.find()) {
             return matcher.group();
         }
         return url + "/";
+    }
+
+    /**
+     * https://c.runo2ob.com/front-end/854
+     * to
+     * https://c.runo2ob.com/front-end/
+     * 截取url的域名
+     * @param url 要获取的url
+     * @return 获取不到为空
+     */
+    public static String getUrlAbsolutePath(String url) {
+        if(url.endsWith("/")) {
+            url = url + "1";
+        }
+        String[] urls = url.split("/");
+        url = url.replace(urls[urls.length-1], "");
+        return url;
     }
 }

@@ -16,23 +16,13 @@ import java.util.regex.Pattern;
 public class Spider implements Runnable {
 
     private String startUrl;
-    private String baseUrl;
     private ArrayList<String> spiderPath = new ArrayList<>();
-    private ArrayList<String> spiderTargat = new ArrayList<>();
 
     /**
      * @param startUrl 爬虫开始的url
      */
     public Spider(String startUrl) {
         this.startUrl = startUrl;
-        baseUrl = Utils.getBaseUrl(startUrl);
-        spiderPath.add(startUrl);
-    }
-
-    public Spider(String baseUrl, ArrayList<String> spiderPath, ArrayList<String> spiderTargat) {
-        this.spiderPath = spiderPath;
-        this.spiderTargat = spiderTargat;
-        this.baseUrl = baseUrl;
     }
 
     /**
@@ -40,18 +30,12 @@ public class Spider implements Runnable {
      */
     @Override
     public void run() {
-        if (startUrl == null || "".equals(startUrl)) {
-            for (String targat : spiderTargat) {
-                startClimb(targat);
-            }
-        } else {
-            startClimb(startUrl);
-        }
-
+        startClimb(startUrl);
     }
 
     /**
      * 开爬，先获取到html的源代码
+     *
      * @param analysisUrl
      */
     private void startClimb(String analysisUrl) {
@@ -68,8 +52,8 @@ public class Spider implements Runnable {
             while ((line = in.readLine()) != null) {
                 result.append(line);
             }
-            getHtmlSrc(result.toString());
-            getHtmlHref(result.toString());
+            getHtmlSrc(analysisUrl, result.toString());
+            getHtmlHref(analysisUrl, result.toString());
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -91,7 +75,7 @@ public class Spider implements Runnable {
      * @param str
      * @return
      */
-    private void getHtmlSrc(String str) {
+    private void getHtmlSrc(String analysisUrl, String str) {
         Pattern pattern = Pattern.compile("src=\\\"(.+?)\\\"");
         Matcher matcher = pattern.matcher(str);
         StringBuilder strs = new StringBuilder();
@@ -99,7 +83,7 @@ public class Spider implements Runnable {
             String words = matcher.group();
             words = words.replace("src=", "");
             words = words.replace("\"", "");
-            ImageDownLoader.saveInFile(words, baseUrl);
+            ImageDownLoader.saveInFile(words, Utils.getUrlAbsolutePath(analysisUrl));
             strs.append(words).append("\r\n");
         }
         System.out.println("-----------------下载完-------------------");
@@ -112,12 +96,13 @@ public class Spider implements Runnable {
      * @param str
      * @return
      */
-    private void getHtmlHref(String str) {
+    private void getHtmlHref(String analysisUrl, String str) {
         Pattern pattern = Pattern.compile("href=\\\"(.+?)\\\"");
         Matcher matcher = pattern.matcher(str);
         StringBuilder strs = new StringBuilder();
         String realUrl = "";
         String tempUrl = "";
+        ArrayList<String> spiderTargat = new ArrayList<>();
         while (matcher.find()) {
             tempUrl = matcher.group();
             tempUrl = tempUrl.replace("href=", "");
@@ -125,26 +110,28 @@ public class Spider implements Runnable {
             if (tempUrl.startsWith("http://") || tempUrl.startsWith("https://")) {
                 realUrl = tempUrl;
             } else {
-                realUrl = baseUrl + tempUrl;
+                realUrl = Utils.getUrlAbsolutePath(analysisUrl) + tempUrl;
             }
-
             if (!realUrl.endsWith(".css") && !realUrl.endsWith("ico")) {
                 if (!spiderTargat.contains(realUrl) && !spiderPath.contains(realUrl)) {
                     strs.append(realUrl).append("\r\n");
                     spiderTargat.add(realUrl);
                 }
             }
-
         }
+        System.out.println("---------------------!!!!!!!!!!!-----------------------");
+        System.out.println(spiderPath.toString());
+        System.out.println("---------------------!!!!!!!!!!!-----------------------");
+        System.out.println(spiderTargat.toString());
+        System.out.println("---------------------!!!!!!!!!!!-----------------------");
 
-        Spider mSpider = new Spider(baseUrl, spiderPath, spiderTargat);
-        new Thread(mSpider).start();
+        for (String path : spiderTargat) {
+            startClimb(path);
+        }
 
         System.out.println("---------------------搜索完该页面下的所有次级链接-----------------------");
         System.out.println(strs.toString());
     }
 
-    private void a() {
 
-    }
 }
