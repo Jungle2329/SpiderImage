@@ -1,8 +1,8 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,7 +30,7 @@ public class Spider implements Runnable {
      */
     @Override
     public void run() {
-        startClimb(startUrl);
+        startClimb(startUrl, true);
     }
 
     /**
@@ -38,23 +38,33 @@ public class Spider implements Runnable {
      *
      * @param analysisUrl
      */
-    private void startClimb(String analysisUrl) {
+    private void startClimb(String analysisUrl, boolean intoNextStep) {
         System.out.println("开始爬:" + analysisUrl);
         spiderPath.add(analysisUrl);
         BufferedReader in = null;
         StringBuilder result = new StringBuilder();
         try {
             URL url = new URL(analysisUrl);
-            URLConnection conn = url.openConnection();
-            in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
-            String line;
-            //拿到所有的网页源代码
-            while ((line = in.readLine()) != null) {
-                result.append(line);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+            conn.setRequestMethod("POST");
+            conn.setUseCaches(false);
+            conn.setInstanceFollowRedirects(true);
+            conn.setRequestProperty("Content-Type","application/x-www-form-urlencoded");
+            int code = conn.getResponseCode();
+            //防止重定向到其他页面
+            String realUrl = conn.getURL().toString();
+            if(code == 200 && realUrl!= null && realUrl.equals(analysisUrl)) {
+                in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
+                String line;
+                //拿到所有的网页源代码
+                while ((line = in.readLine()) != null) {
+                    result.append(line);
+                }
+                getHtmlSrc(analysisUrl, result.toString());
+                getHtmlHref(analysisUrl, result.toString(), intoNextStep);
             }
-            getHtmlSrc(analysisUrl, result.toString());
-            getHtmlHref(analysisUrl, result.toString());
-
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -96,7 +106,7 @@ public class Spider implements Runnable {
      * @param str
      * @return
      */
-    private void getHtmlHref(String analysisUrl, String str) {
+    private void getHtmlHref(String analysisUrl, String str, boolean intoNextStep) {
         Pattern pattern = Pattern.compile("href=\\\"(.+?)\\\"");
         Matcher matcher = pattern.matcher(str);
         StringBuilder strs = new StringBuilder();
@@ -125,10 +135,11 @@ public class Spider implements Runnable {
         System.out.println(spiderTargat.toString());
         System.out.println("---------------------!!!!!!!!!!!-----------------------");
 
-        for (String path : spiderTargat) {
-            startClimb(path);
+        if(intoNextStep) {
+            for (String path : spiderTargat) {
+                startClimb(path, false);
+            }
         }
-
         System.out.println("---------------------搜索完该页面下的所有次级链接-----------------------");
         System.out.println(strs.toString());
     }
