@@ -12,7 +12,7 @@ public class Main {
         String urlStr = "http://phideon.svw-volkswagen.com/";
         Spider mSpider = new Spider(urlStr);
         new Thread(mSpider).start();
-//        System.out.println(Utils.getUrlAbsolutePath(urlStr));
+        System.out.println(Utils.getUrlAbsolutePath(urlStr));
 //        "fdfd".codePoints().map()
     }
 
@@ -31,7 +31,7 @@ public class Main {
         return sb.toString();
     }
 
-    private static void a () {
+    private static void a() {
         try {
             HttpURLConnection conn = (HttpURLConnection) new URL("http://kakaluyi.iteye.com/blog/185255").openConnection();
             System.out.println(conn.getResponseCode());
@@ -42,8 +42,6 @@ public class Main {
         }
 
     }
-
-
 
 
 }
